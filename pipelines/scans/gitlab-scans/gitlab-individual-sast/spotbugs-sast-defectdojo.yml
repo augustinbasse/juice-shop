@@ -1,0 +1,34 @@
+include:
+  - template: Jobs/SAST.latest.gitlab-ci.yml
+  - project: 'wavestone3/MaquetteDSO'
+    ref: main
+    file:
+      - '/gitlab-defectdojo.yml'
+sast:
+  artifacts:
+    paths:
+      - gl-sast-report.json
+      
+spotbugs-defectdojo:
+  extends: .defectdojo_upload
+  needs: ["defectdojo_create_engagement", "spotbugs-sast"]
+  variables:
+    DEFECTDOJO_SCAN_TYPE: "GitLab SAST Report"
+    DEFECTDOJO_SCAN_TEST_TYPE: "GitLab-CI Spotbugs"
+    DEFECTDOJO_SCAN_FILE: "./gl-sast-report.json"
+  rules:
+    - if: '$DEFECTDOJO_NOT_ON_MASTER == "true" && $CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: $SAST_EXCLUDED_ANALYZERS =~ /spotbugs/
+      when: never
+    - if: $SAST_EXPERIMENTAL_FEATURES == 'true'
+      exists:
+        - '**/AndroidManifest.xml'
+      when: never
+    - if: $SAST_DISABLED
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      exists:
+        - '**/*.groovy'
+        - '**/*.scala'
+        - '**/*.kt'

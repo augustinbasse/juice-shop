@@ -1,0 +1,28 @@
+include:
+  - template: Jobs/SAST.latest.gitlab-ci.yml
+  - project: 'wavestone3/MaquetteDSO'
+    ref: main
+    file:
+      - '/gitlab-defectdojo.yml'
+sast:
+  artifacts:
+    paths:
+      - gl-sast-report.json
+      
+pmd-apex-defectdojo:
+  extends: .defectdojo_upload
+  needs: ["defectdojo_create_engagement", "pmd-apex-sast"]
+  variables:
+    DEFECTDOJO_SCAN_TYPE: "GitLab SAST Report"
+    DEFECTDOJO_SCAN_TEST_TYPE: "GitLab-CI PMD Aepx"
+    DEFECTDOJO_SCAN_FILE: "./gl-sast-report.json"
+  rules:
+    - if: '$DEFECTDOJO_NOT_ON_MASTER == "true" && $CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: $SAST_DISABLED
+      when: never
+    - if: $SAST_EXCLUDED_ANALYZERS =~ /pmd-apex/
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      exists:
+        - '**/*.cls'

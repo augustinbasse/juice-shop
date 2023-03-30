@@ -1,0 +1,25 @@
+include:
+  - template: Jobs/Build.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.latest.gitlab-ci.yml
+  - project: 'wavestone3/MaquetteDSO'
+    ref: main
+    file:
+      - '/gitlab-defectdojo.yml'
+
+build: 
+  rules:
+   - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+container-scanning-defectdojo:
+  extends: .defectdojo_upload
+  needs: ["defectdojo_create_engagement", "container_scanning"]
+  variables:
+    DEFECTDOJO_SCAN_TYPE: "GitLab Container Scan"
+    DEFECTDOJO_SCAN_TEST_TYPE: "GitLab-CI Container Scanning"
+    DEFECTDOJO_SCAN_FILE: "./gl-container-scanning-report.json"
+  rules:
+    - if: '$DEFECTDOJO_NOT_ON_MASTER == "true" && $CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: $SECRET_DETECTION_DISABLED
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'

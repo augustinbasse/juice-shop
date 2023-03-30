@@ -1,0 +1,34 @@
+include:
+  - project: 'wavestone3/MaquetteDSO'
+    ref: main
+    file:
+      - '/gitlab-defectdojo.yml'
+
+snyk-sast:
+  image: node:latest
+  stage: test
+  allow_failure: true 
+  artifacts:
+    when: always
+    paths: 
+      - snyk-report.json
+  script:
+    # Install npm, snyk, and snyk-to-html
+    - npm install -g npm@latest
+    - npm install -g snyk
+    # Run snyk help, snyk auth, snyk monitor, snyk test to break build and out report
+    - snyk --help
+    - snyk auth $SNYK_TOKEN
+    - snyk code test --json-file-output=snyk-report.json
+
+snyk-sast-defectdojo:
+  extends: .defectdojo_upload
+  needs: ["defectdojo_create_engagement", "snyk-sast"]
+  variables:
+    DEFECTDOJO_SCAN_TYPE: "SARIF"
+    DEFECTDOJO_SCAN_TEST_TYPE: "GitLab-CI Snyk SAST"
+    DEFECTDOJO_SCAN_FILE: "./snyk-report.json"
+  rules:
+    - if: '$DEFECTDOJO_NOT_ON_MASTER == "true" && $CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'

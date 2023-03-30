@@ -1,0 +1,6 @@
+include:
+  - project: 'wavestone3/MaquetteDSO'
+    ref: main
+    file: '/scans/gitlab-scans/container-scan-defectdojo.yml'
+    rules:
+      - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $PROD_BRANCH
